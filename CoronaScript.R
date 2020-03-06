@@ -48,23 +48,11 @@ new5 <- dcast(data = new4[ , .(var = sum(newCases, na.rm = TRUE)), by = .(Coun, 
 dea5 <- dcast(data = dea4[ , .(var = sum(newCases, na.rm = TRUE)), by = .(Coun, Fecha) ], formula = Fecha ~  Coun, value.var = "var", fill =  0)
 rec5 <- dcast(data = rec4[ , .(var = sum(newCases, na.rm = TRUE)), by = .(Coun, Fecha) ], formula = Fecha ~  Coun, value.var = "var", fill =  0)
 
-new6 <- cbind( Fecha = new5$Fecha, new5[ , lapply( .SD, cumsum), .SDcol = names(new5)[names(new5) != "Fecha"]] )
-dea6 <- cbind( Fecha = dea5$Fecha, dea5[ , lapply( .SD, cumsum), .SDcol = names(new5)[names(dea5) != "Fecha"]] )
-rec6 <- cbind( Fecha = rec5$Fecha ,rec5[ , lapply( .SD, cumsum), .SDcol = names(new5)[names(rec5) != "Fecha"]] )
-
-nombresPandemia <- (data.frame(new6))[nrow(new6) , data.frame(new6[nrow(new6)]) > 2000]
-nombresPandemia <- c( "Fecha", names(nombresPandemia), "spain")
-datos <- new6 %>%  select(nombresPandemia)  %>% select(-mainland_china) %>% 
-   select(-south_korea) %>%  select(-others) %>%  data.frame()
-xts::xts(x = datos[ , names(datos)[names(datos) != "Fecha"]], order.by = datos$Fecha  ) %>%  dygraphs::dygraph()
-datos <- new5 %>%  select(nombresPandemia)  %>% select(-mainland_china) %>% 
-  select(-south_korea) %>%  select(-others) %>%  data.frame()
-xts::xts(x = datos[ , names(datos)[names(datos) != "Fecha"]], order.by = datos$Fecha  ) %>%  dygraphs::dygraph()
-datos <- new6 %>%  select(Fecha, iran, italy, spain)  %>%  data.frame()
+datos <- new5 %>%  select(Fecha, iran, italy, spain)  %>%  data.frame()
 xts::xts(x = datos[ , names(datos)[names(datos) != "Fecha"]], order.by = datos$Fecha  ) %>%  dygraphs::dygraph()
 
 # model Iran --------------------------------------------------------------
-y <- new6[ , iran] %>% .[ .> 0]
+y <- new5[ , iran] %>% .[ .> 0]
 length(y)
 y2 <- y[1:( length(y)-3)]
 auto.arima(y2)
@@ -77,6 +65,7 @@ mean( abs(  predicted$mean - yControl )/ yControl )
 mean( abs(  predicted$mean - yControl ) )
 plot( y = as.vector(predicted$mean),  x = yControl, xlab = "Real" , ylab = "Fitted"  )
 abline(a = 0, b = 1, col = 2)
+title("Iran")
 checkresiduals(fit)
 autoplot(forecast(fit))
 forecast(fit, h = 11)
@@ -84,7 +73,7 @@ forecast(fit, h = 11)
 
 
 # model Italy -------------------------------------------------------------
-y <- new6[ , italy] %>% .[ .> 0]
+y <- new5[ , italy] %>% .[ .> 0]
 length(y)
 y2 <- y[1:( length(y)-3)]
 auto.arima(y2)
@@ -97,13 +86,14 @@ mean( abs(  predicted$mean - yControl )/ yControl )
 mean( abs(  predicted$mean - yControl ) )
 plot( y = as.vector(predicted$mean),  x = yControl, xlab = "Real" , ylab = "Fitted"  )
 abline(a = 0, b = 1, col = 2)
+title("Italy")
 checkresiduals(fit)
 autoplot(forecast(fit))
 forecast(fit, h = 11)
 
 
 # model Spain -------------------------------------------------------------
-y <- new6[ , spain] %>% .[ .> 0]
+y <- new5[ , spain] %>% .[ .> 0]
 length(y)
 y2 <- y[1:( length(y))]
 auto.arima(y2)
