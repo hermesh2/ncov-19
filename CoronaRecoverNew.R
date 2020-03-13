@@ -3,6 +3,7 @@ library(data.table)
 library(dplyr)
 library(zoo)
 library(forecast)
+library(lubridate)
 
 setwd("C:/Users/hermesh/Dropbox/Investigaciones/Coronavirus/")
 
@@ -59,9 +60,9 @@ datos <- new5 %>%  select(Fecha, china, `korea,_south`,italy, spain)  %>%  data.
 xts::xts(x = datos[ , names(datos)[names(datos) != "Fecha"]], order.by = datos$Fecha  ) %>%  dygraphs::dygraph()
 
 
+
 foo <- function(x){
-  
-  x %>% diff %>% c(0,.)
+    x %>% diff %>% c(0,.) %>% ifelse(test = . < 0, yes = 0, no = .)
 }
 DTnames <- names(datos)[names(datos) !=  "Fecha"]
 datos <- data.table(datos)
