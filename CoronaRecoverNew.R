@@ -60,6 +60,7 @@ xts::xts(x = datos[ , names(datos)[names(datos) != "Fecha"]], order.by = datos$F
 
 
 foo <- function(x){
+  
   x %>% diff %>% c(0,.)
 }
 DTnames <- names(datos)[names(datos) !=  "Fecha"]
@@ -90,3 +91,11 @@ xts::xts(x = datosAll[ , names(datosAll)[grep( pattern = "italy", x = names(dato
          , order.by = datosAll$Fecha  ) %>%  dygraphs::dygraph()
 
 
+# hay algo raro en los datos korea del sur el dia 8, esta en los originales
+# rec5[ rec5$Fecha > ymd( 20200305) , c("Fecha", "korea,_south")]
+# rec[ rec$Fecha > ymd( 20200305) & grepl( pattern = "orea", rec$Coun) , c("Fecha", "newCases")]
+# rec3[ rec3$Fecha > ymd( 20200305) & rec3$Coun == "korea,_south", c("Fecha", "newCases")]
+# x <- fread(input = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv")
+# x[ grepl(pattern = "orea", `Country/Region` )]
+# x <- fread(input = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv")
+# x[ grepl(pattern = "orea", `Country/Region` )]
