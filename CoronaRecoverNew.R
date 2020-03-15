@@ -8,7 +8,8 @@ library(lubridate)
 library(dygraphs)
 
 fecIni <- 20200101
-n <- 3
+n <- 0 # Puede ser que el dato del dia no se fiable.
+cat("Esta es la fecha tope del script", as.character(format( Sys.Date() - days(n), "%d-%m-%Y") ) , "\n")
 setwd("C:/Users/hermesh/Dropbox/Investigaciones/Coronavirus/")
 # setwd("C:/Users/herme//Dropbox/Investigaciones/Coronavirus/")
 funcMelt <- 
@@ -64,6 +65,11 @@ rec5 <- dcast(data = rec4[ , .(var = sum(newCases, na.rm = TRUE)), by = .(Coun, 
 new5$Fecha <- new5$Fecha + days(1)
 dea5$Fecha <- dea5$Fecha + days(1)
 rec5$Fecha <- rec5$Fecha + days(1)
+
+new5 <- new5 [ new5$Fecha <= Sys.Date() - days(n) ]
+dea5 <- dea5 [ dea5$Fecha <= Sys.Date() - days(n) ]
+rec5 <- rec5 [ rec5$Fecha <= Sys.Date() - days(n) ]
+
 datos <- new5 %>%  select(Fecha, china, `korea,_south`,italy, spain)  %>%  data.frame()
 xts::xts(x = datos[ , names(datos)[names(datos) != "Fecha"]], order.by = datos$Fecha  ) %>%  dygraphs::dygraph()
 
@@ -76,14 +82,14 @@ DTnames <- names(datos)[names(datos) !=  "Fecha"]
 datos <- data.table(datos)
 datos[ , (DTnames) := lapply( .SD, foo ), .SDcol = DTnames ]
 datos  
-datosNew <- data.frame(datos[ Fecha > ymd(fecIni) & Fecha <= Sys.Date() - days(n)])
+datosNew <- data.frame(datos[ Fecha > ymd(fecIni) & Fecha <= Sys.Date() ])
 xts::xts(x = datosNew[ , names(datosNew)[names(datosNew) != "Fecha"]], order.by = datosNew$Fecha  ) %>%  dygraphs::dygraph()
 
 datos <- rec5 %>%  select(Fecha, china, `korea,_south`,italy, spain)  %>%  data.frame()
 datos <- data.table(datos)
 datos[ , (DTnames) := lapply( .SD, foo ), .SDcol = DTnames ]
 datos  
-datosRecover <- data.frame(datos[ Fecha > ymd(fecIni) & Fecha <= Sys.Date() - days(n)])
+datosRecover <- data.frame(datos[ Fecha > ymd(fecIni) & Fecha <= Sys.Date() ])
 xts::xts(x = datosRecover[ , names(datosRecover)[names(datosRecover) != "Fecha"]], order.by = datosRecover$Fecha  ) %>%  dygraphs::dygraph()
 
 datosAll <- merge(x = datosNew, y = datosRecover, by = "Fecha", all = TRUE)
@@ -103,7 +109,7 @@ datos <- dea5 %>%  select(Fecha, china, `korea,_south`,italy, spain)  %>%  data.
 datos <- data.table(datos)
 datos[ , (DTnames) := lapply( .SD, foo ), .SDcol = DTnames ]
 datos  
-datosDeath <- data.frame(datos[ Fecha > ymd(fecIni) & Fecha <= Sys.Date() - days(n)])
+datosDeath <- data.frame(datos[ Fecha > ymd(fecIni) & Fecha <= Sys.Date() ])
 xts::xts(x = datosDeath[ , names(datosDeath)[names(datosDeath) != "Fecha"]], order.by = datosDeath$Fecha  ) %>%  dygraphs::dygraph()
 names(datosDeath)[-1] <- paste0(names(datosDeath)[-1] , "_death")
 datosAll <- merge(x = datosAll, y = datosDeath, by = "Fecha", all = TRUE)
