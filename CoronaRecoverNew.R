@@ -132,19 +132,20 @@ datosAll <- merge(x = datosAll, y = datosDeath, by = "Fecha", all = TRUE)
 plotActivos <- 
   function(counTxt){
     x <- data.frame( 
-      Activos = c (0,cumsum( datosAll[ , paste0(counTxt,"_newCase")] ) 
+      Activos = c (cumsum( datosAll[ , paste0(counTxt,"_newCase")] ) 
                    - cumsum( datosAll[ , paste0(counTxt,"_newRecover")] ) 
                    - cumsum(datosAll[ , paste0(counTxt,"_death")] ) )
-      , recuperados = c(0, cumsum( datosAll[ , paste0(counTxt,"_newRecover")] ) )
-      , muertos = c(0, cumsum( datosAll[ , paste0(counTxt,"_death")] ) )
-      , Totales = c (0,cumsum( datosAll[ , paste0(counTxt,"_newCase")] ) )
+      , recuperados = c( cumsum( datosAll[ , paste0(counTxt,"_newRecover")] ) )
+      , muertos = c( cumsum( datosAll[ , paste0(counTxt,"_death")] ) )
+      , Totales = c (cumsum( datosAll[ , paste0(counTxt,"_newCase")] ) )
     )
     x %>% tail(1) ->.;  (.$muertos / (.$muertos + .$recuperados) * 100) %>%  
       round(2) %>% cat("Ratio Mortalidad sobre muertos y recuperados", . ,"\n")
     x %>% tail(1) ->.;  (.$muertos / (.$Totales) * 100) %>%  
       round(2) %>% cat( "Ratio Mortalidad sobre totales", . ,"\n")
     x$Totales <- rm()
-    zoo( x =  x, order.by = datos$Fecha ) %>% dygraph(main = counTxt)
+    zoo( x =  x, order.by = datos$Fecha ) %>% dygraph(main = counTxt) %>%  print
+    cbind(x, Fecha =  datos$Fecha ) %>%  tail
 }
 
 plotActivos("china")
