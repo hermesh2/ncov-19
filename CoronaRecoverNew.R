@@ -1,11 +1,9 @@
 rm(list =ls());gc()
 
-library(data.table)
-library(dplyr)
-library(zoo)
-library(forecast)
-library(lubridate)
-library(dygraphs)
+if(!require("pacman")){
+  install.packages("pacman")
+}
+pacman::p_load(data.table, dplyr, zoo, forecast, lubridate, dygraphs)  
 
 fecIni <- 20200101
 n <- 0 # Puede ser que el dato del dia no se fiable.
@@ -145,7 +143,7 @@ plotActivos <-
       round(2) %>% cat( "Ratio Mortalidad sobre totales", . ,"\n")
     x$Totales <- rm()
     zoo( x =  x, order.by = datos$Fecha ) %>% dygraph(main = counTxt) %>%  print
-    cbind(x, Fecha =  datos$Fecha ) %>%  tail
+    cbind(x, Fecha =  datos$Fecha )
 }
 
 plotActivos("china")
