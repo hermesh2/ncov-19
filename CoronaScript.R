@@ -3,7 +3,7 @@ library(data.table)
 library(dplyr)
 library(zoo)
 library(forecast)
-
+library(tidyverse)
 
 
 setwd("C:/Users/hermesh/Dropbox/Investigaciones/Coronavirus/")
