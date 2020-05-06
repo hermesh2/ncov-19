@@ -561,7 +561,7 @@ body <- dashboardBody( # se conecta con dashboardSidebar
                   # Main panel for displaying outputs ----
                   mainPanel(
                     
-                    tableOutput("table")
+                    dataTableOutput("tableDescargas")
                     
                   )
                   
@@ -812,9 +812,15 @@ server <- function(input, output) {
     })
     
     # Table of selected dataset ----
-    output$table <- renderTable({
-      datasetInput()
-    })
+    output$tableDescargas <- renderDataTable({ 
+      n <- ifelse( test = ncol(datasetInput()) > 5
+                   , yes =  5
+                   , no = ncol(datasetInput())
+      )
+      DT::datatable(
+        datasetInput()[,  ]
+      )
+    }) 
     
     # Downloadable csv of selected dataset ----
     output$downloadData <-  downloadHandler(
