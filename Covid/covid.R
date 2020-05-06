@@ -580,6 +580,11 @@ body <- dashboardBody( # se conecta con dashboardSidebar
         ),
         
         tabItem(tabName = "dashboard6",
+                fluidRow( box(numericInput(inputId = "nCasosTest", label = "Mostrar n primeros", value = 20), background = "blue")
+                          , infoBox("% de paises con info sobre el # test"
+                                    , value = paste0 ( round( nrow(datosOxfordTest) /  ncol(listaSinPop$dea) * 100) , "%")
+                                    , icon = icon("chart-bar"))
+                          ), 
                 withSpinner(  plotlyOutput('plotTest') ) ,
                 withSpinner(  plotlyOutput('plotTest1000h') ) ,
                 dataTableOutput("TestTable")
@@ -781,15 +786,15 @@ server <- function(input, output) {
 # plot test  --------------------------------------------------------------
     output$plotTest <- 
       renderPlotly(({
-        pTot <- ggplot(data= datosOxfordTest[ order(Test_Totales, decreasing = TRUE)][1:30]
-                       , aes(x=reorder(Coun, Test_Totales), y=Test_Totales)) +
+        pTot <- ggplot(data= datosOxfordTest[ order(Test_Totales, decreasing = TRUE)][1:input$nCasosTest]
+                       , aes(x=reorder(Coun, Test_Totales), y= Test_Totales)) +
           geom_bar(stat="identity", fill = "steelblue") + coord_flip()  + theme_bw() + xlab("Pais") + ylab("# Test") + ggtitle("Casos Total")
         pTot %>% ggplotly()
       }))
     
     output$plotTest1000h <- 
       renderPlotly(({
-        pProp <- ggplot(data= datosOxfordTest[ order(TestPorMilHab, decreasing = TRUE)][1:30]
+        pProp <- ggplot(data= datosOxfordTest[ order(TestPorMilHab, decreasing = TRUE)][1:input$nCasosTest]
                         , aes(x=reorder(Coun, TestPorMilHab), y= round(TestPorMilHab, 2) ) ) +
           geom_bar(stat="identity", fill = "steelblue") + coord_flip()  + theme_bw() + xlab("Pais") + ylab("Test x 1000 hab") + ggtitle("Casos por mil habitantes") 
         pProp %>% ggplotly()
