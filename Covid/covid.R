@@ -242,7 +242,28 @@ Pop[ Coun == "north_america"]$Coun<- "us"
 Pop[ Coun == "sub-saharan_africa"]$Coun<- "western_sahara"
 Pop[ Coun == ""]$Coun<- ""
 Pop <- Pop[, .(Coun, Hab2018)] 
-    
+
+datosOxford <- fread("https://covid.ourworldindata.org/data/owid-covid-data.csv")
+Aux <- datosOxford[ !is.na(total_tests), .( Test_Totales = max(total_tests, na.rm = TRUE)
+                                            ,  Ultima_actualizacion = max(date))
+                    , by = .(Coun = tolower(location) )][ 
+  !is.na(Test_Totales) & !is.infinite(Test_Totales)][order(Test_Totales, decreasing = TRUE)]
+# Pop$Coun[ Pop$Coun %>%  grepl(pattern = "tai")]
+Aux[ , Coun := gsub(pattern = " ", replacement = "_", Coun)]
+Aux[ Coun == "czech_republic", Coun := "czechia"]
+Aux[ Coun == "hong_kong", Coun := "hong_kong_sar"]
+Aux[ Coun == "south_korea", Coun := "korea,_south"]
+# Aux[ Coun == "taiwan", Coun := ""] #No reconocido, politica
+datosOxfordTest <- merge(x = Aux, y = Pop
+                         , by = "Coun", all.x = TRUE, all.y = FALSE )
+if( nrow( datosOxfordTest[ is.na(Hab2018)]) > 0 ){
+  warning("CH: actualizar nombres de :", paste(datosOxfordTest[ is.na(Hab2018)]$Coun, collapse = ", "))
+}
+datosOxfordTest[ , TestPorMilHab := Test_Totales/Hab2018*1000]
+datosOxfordTest <- datosOxfordTest[ !duplicated(Coun)]
+datosOxfordTest[ order(TestPorMilHab, decreasing = TRUE), rankTest1000h := 1:nrow(datosOxfordTest)]
+datosOxfordTest[ , .(Coun, Ultima_actualizacion, rankTest1000h, Test_Totales, TestPorMilHab)]
+
 new <- funcMelt(dataFun = fread(input = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
                  , varTxt = "newCases")
 dea <- funcMelt(dataFun = fread(input = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
@@ -264,8 +285,14 @@ leeDatos <- function( popBool = FALSE, pop = pop, new3 = new, dea3 = dea, rec3 =
     if((popBool) == TRUE){
      dataHabFun <- function(data){
          data <- merge(data, Pop, by = "Coun")   
+         
+         if( nrow( data[ is.na(Hab2018)]) > 0 ){
+           warning("CH: actualizar nombres de :", unique( paste(data[ is.na(Hab2018)]$Coun), collapse = ", "))
+         }
+         
          data[ , newCases := newCases / Hab2018]
          data[ , Hab2018 := rm() ]
+
          return(data)
      }
      new4 <- dataHabFun(data = copy(new4) )
@@ -353,7 +380,8 @@ sidebar <- dashboardSidebar( # se conecta con dashboardBody
                 menuItem("Muertos detectados", tabName = "dashboard2", icon = icon("skull")),
                 menuItem("Contagiados detectados", tabName = "dashboard3", icon = icon("ambulance")),
                 menuItem("Recuperados detectados", tabName = "dashboard4", icon = icon("stethoscope")),
-                menuItem("Notas", tabName = "dashboard5", icon = icon("book")),
+                menuItem("Test", tabName = "dashboard6", icon = icon("vial")),
+                menuItem("Notas y Descargas", tabName = "dashboard5", icon = icon("book")),
                 
                 selectInput(inputId = "Pais1", label = "Pais 1",
                             choices =  nombresPaises[-1], selected = "spain" ),
@@ -391,23 +419,6 @@ body <- dashboardBody( # se conecta con dashboardSidebar
 
 
     tabItems(
-        
-        tabItem(tabName = "dashboard5",
-                h2("Origen de los datos"), br()
-                , h4("Todos los datos vienen de la Johns Hopkins (https://gisanddata.maps.arcgis.com/apps/opsdashboard/index.html#/85320e2ea5424dfaaa75ae62e5c06e61)")
-                , br()
-                , h2("Datos de activos"), br()
-                ,h4("Son datos que nos permiten conocer en que estado se encuentra nuestro pais y ver si las curvas de datos activos(detectados), tienen un nivel aceptable")
-                , br()
-                , h2("Datos de Contagiados"), br()
-                , h4("Un buen dato de contagiados es cuando la curva de recuperados esta por encima de la de nuevos datos")
-                , h2("Controles")
-                , h4("Los controles 'Minimo de # Casos' y 'Maximo de # Casos' requieren un ajuste manual. Por degracia no encontre una manera de hacer mejor")
-                , h2("Acentos")
-                , h4("Evite los acentos, para evitar problemas en la subida de datos")
-                
-                
-        ),
         
         # First tab content
         tabItem(tabName = "dashboard1",
@@ -501,6 +512,70 @@ body <- dashboardBody( # se conecta con dashboardSidebar
                 
                 
         ),
+        
+        tabItem(tabName = "dashboard5",
+                h2("Origen de los datos"), br()
+                , h4("Los datos de contagios, recuperados y muertos vienen de la universidad Johns Hopkins (JSU, https://gisanddata.maps.arcgis.com/apps/opsdashboard/index.html#/85320e2ea5424dfaaa75ae62e5c06e61)")
+                , br()
+                , h4("Los datos de test vienen de 'our world in Data' de la universidad de Oxford (OWD, https://ourworldindata.org/)")
+                , br()
+                , h4("Los datos de poblacion son descargados de  in Banco Mundial (https://data.worldbank.org/indicator/sp.pop.totl)")
+                , br()
+                , h2("Datos de activos"), br()
+                ,h4("Son datos que nos permiten conocer en que estado se encuentra nuestro pais y ver si las curvas de datos activos(detectados), tienen un nivel aceptable")
+                , br()
+                , h2("Datos de Contagiados"), br()
+                , h4("Un buen dato de contagiados es cuando la curva de recuperados esta por encima de la de nuevos datos")
+                , h2("Controles")
+                , h4("Los controles 'Minimo de # Casos' y 'Maximo de # Casos' requieren un ajuste manual. Por degracia no encontre una manera de hacer mejor")
+                , h2("Acentos")
+                , h4("Evite los acentos, para evitar problemas en la subida de datos")
+                ,  sidebarLayout(
+                  
+                  # Sidebar panel for inputs ----
+                  sidebarPanel(
+                    
+                    # Input: Choose dataset ----
+                    selectInput("dataset", "Choose a dataset:",
+                                choices = c(
+                                  "TodosDatosJHU"
+                                  , "NuevosCasosJHU"
+                                  , "MuertosJHU"
+                                  , "RecuperadosJHU"
+                                  , "ActivosJHU"
+                                  , "TodosDatosPorHabitanteJHU"
+                                  , "NuevosCasosPorHabitanteJHU"
+                                  , "MuertosPorHabitanteJHU"
+                                  , "RecuperadosPorHabitanteJHU"
+                                  , "ActivosPorHabitanteJHU"
+                                  , "PoblacionBancoMundial"
+                                  , "DatosOurWorldInData"
+                                  , "DatosTestOWD"
+                                )),
+                    
+                    # Button
+                    downloadButton(outputId = "downloadData", label = "Descarga")
+                    
+                  ),
+                  
+                  # Main panel for displaying outputs ----
+                  mainPanel(
+                    
+                    tableOutput("table")
+                    
+                  )
+                  
+                )
+                
+                
+        ),
+        
+        tabItem(tabName = "dashboard6",
+                withSpinner(  plotlyOutput('plotTest') ) ,
+                withSpinner(  plotlyOutput('plotTest1000h') ) ,
+                dataTableOutput("TestTable")
+        ),
+        
 
         tabItem(tabName = "widgets",
                 h2("Widgets tab content")
@@ -694,6 +769,63 @@ server <- function(input, output) {
             
         } )
 
+# plot test  --------------------------------------------------------------
+    output$plotTest <- 
+      renderPlotly(({
+        pTot <- ggplot(data= datosOxfordTest[ order(Test_Totales, decreasing = TRUE)][1:30]
+                       , aes(x=reorder(Coun, Test_Totales), y=Test_Totales)) +
+          geom_bar(stat="identity", fill = "steelblue") + coord_flip()  + theme_bw() + xlab("Pais") + ylab("# Test") + ggtitle("Casos Total")
+        pTot %>% ggplotly()
+      }))
+    
+    output$plotTest1000h <- 
+      renderPlotly(({
+        pProp <- ggplot(data= datosOxfordTest[ order(TestPorMilHab, decreasing = TRUE)][1:30]
+                        , aes(x=reorder(Coun, TestPorMilHab), y= round(TestPorMilHab, 2) ) ) +
+          geom_bar(stat="identity", fill = "steelblue") + coord_flip()  + theme_bw() + xlab("Pais") + ylab("Test x 1000 hab") + ggtitle("Casos por mil habitantes") 
+        pProp %>% ggplotly()
+      }))
+
+    
+    output$TestTable <- 
+      renderDataTable(({
+        DT::datatable(datosOxfordTest)
+      }))
+
+# Descargas ---------------------------------------------------------------
+    datasetInput <- reactive({
+      switch(input$dataset,
+             "TodosDatosJHU" = listaSinPop$datosAll,
+             "NuevosCasosJHU" = listaSinPop$new,
+             "MuertosJHU" = listaSinPop$dea,
+             "RecuperadosJHU" = listaSinPop$rec,
+             "ActivosJHU" = listaSinPop$act,
+             "TodosDatosPorHabitanteJHU" = listaConPop$new,
+             "NuevosCasosPorHabitanteJHU" = listaConPop$new,
+             "MuertosPorHabitanteJHU" = listaConPop$new,
+             "RecuperadosPorHabitanteJHU" = listaConPop$new,
+             "ActivosPorHabitanteJHU" = listaConPop$new,
+             "PoblacionBancoMundial" = Pop,
+             "DatosOurWorldInData" = datosOxford,
+             "DatosTestOWD" = datosOxfordTest
+             )
+    })
+    
+    # Table of selected dataset ----
+    output$table <- renderTable({
+      datasetInput()
+    })
+    
+    # Downloadable csv of selected dataset ----
+    output$downloadData <-  downloadHandler(
+      filename = function() {
+        paste0(input$dataset, ".csv", sep = "")
+      },
+      content = function(file) {
+        fwrite(datasetInput(), file, row.names = FALSE)
+      }
+    )
+    
     
 } 
 
