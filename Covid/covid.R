@@ -226,7 +226,7 @@ plotSerieNormal <-  function(datfun, CounTxt, mavg_mmed = "" , forMa = 1, mainTx
 Pop <- fread(input = "Population.csv", integer64 = "double")
 Pop$Coun <- Pop$`Country Name` %>%  gsub(pattern = " ", replacement = "_", .) %>% tolower
 
-Pop$Coun[ Pop$Coun %>%  grepl(pattern = "sahara")]
+Pop$Coun[ Pop$Coun %>%  grepl(pattern = "hon")]
 Pop[ Coun == "russian_federation"]$Coun <- "russia"
 Pop[ Coun == "brunei_darussalam"]$Coun <- "brunei"
 Pop[ Coun == "czech_republic"]$Coun<- "czechia"
@@ -243,26 +243,6 @@ Pop[ Coun == "sub-saharan_africa"]$Coun<- "western_sahara"
 Pop[ Coun == ""]$Coun<- ""
 Pop <- Pop[, .(Coun, Hab2018)] 
 
-datosOxford <- fread("https://covid.ourworldindata.org/data/owid-covid-data.csv")
-Aux <- datosOxford[ !is.na(total_tests), .( Test_Totales = max(total_tests, na.rm = TRUE)
-                                            ,  Ultima_actualizacion = max(date))
-                    , by = .(Coun = tolower(location) )][ 
-  !is.na(Test_Totales) & !is.infinite(Test_Totales)][order(Test_Totales, decreasing = TRUE)]
-# Pop$Coun[ Pop$Coun %>%  grepl(pattern = "tai")]
-Aux[ , Coun := gsub(pattern = " ", replacement = "_", Coun)]
-Aux[ Coun == "czech_republic", Coun := "czechia"]
-Aux[ Coun == "hong_kong", Coun := "hong_kong_sar"]
-Aux[ Coun == "south_korea", Coun := "korea,_south"]
-# Aux[ Coun == "taiwan", Coun := ""] #No reconocido, politica
-datosOxfordTest <- merge(x = Aux, y = Pop
-                         , by = "Coun", all.x = TRUE, all.y = FALSE )
-if( nrow( datosOxfordTest[ is.na(Hab2018)]) > 0 ){
-  warning("CH: actualizar nombres de :", paste(datosOxfordTest[ is.na(Hab2018)]$Coun, collapse = ", "))
-}
-datosOxfordTest[ , TestPorMilHab := Test_Totales/Hab2018*1000]
-datosOxfordTest <- datosOxfordTest[ !duplicated(Coun)]
-datosOxfordTest[ order(TestPorMilHab, decreasing = TRUE), rankTest1000h := 1:nrow(datosOxfordTest)]
-datosOxfordTest[ , .(Coun, Ultima_actualizacion, rankTest1000h, Test_Totales, TestPorMilHab)]
 
 new <- funcMelt(dataFun = fread(input = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
                  , varTxt = "newCases")
@@ -270,6 +250,44 @@ dea <- funcMelt(dataFun = fread(input = "https://raw.githubusercontent.com/CSSEG
                  , varTxt = "newCases")
 rec <- funcMelt(dataFun = fread(input = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv")
                  , varTxt = "newCases")
+
+
+datosOxford <- fread("https://covid.ourworldindata.org/data/owid-covid-data.csv")
+Aux <- datosOxford[ !is.na(total_tests), .( Test_Totales = max(total_tests, na.rm = TRUE)
+                                            ,  Ultima_actualizacion = max(date))
+                    , by = .(Coun = tolower(location) )][ 
+                      !is.na(Test_Totales) & !is.infinite(Test_Totales)][order(Test_Totales, decreasing = TRUE)]
+# Pop$Coun[ Pop$Coun %>%  grepl(pattern = "tai")]
+Aux[ , Coun := gsub(pattern = " ", replacement = "_", Coun)]
+Aux[ Coun == "czech_republic", Coun := "czechia"]
+Aux[ Coun == "hong_kong", Coun := "hong_kong_sar"]
+Aux[ Coun == "south_korea", Coun := "korea,_south"]
+Aux[ Coun == "united_states", Coun := "us"]
+# Aux[ Coun == "taiwan", Coun := ""] #No reconocido, politica
+datosOxfordTest <- merge(x = Aux, y = Pop
+                         , by = "Coun", all.x = TRUE, all.y = FALSE )
+
+if( nrow( datosOxfordTest[ is.na(Hab2018)]) > 0 ){
+  warning("CH: actualizar nombres de :", paste(datosOxfordTest[ is.na(Hab2018)]$Coun, collapse = ", "))
+}
+
+newAux <- copy(new)
+newAux[ , Coun:= tolower(Coun) %>% gsub(pattern = " ", replacement = "_", x = . )]
+newAux01 <- newAux[ ,.(Cases = sum(newCases) ) , by = .(Coun, Ultima_actualizacion = as.character(Fecha) )][ 
+  , .(Cases = cumsum(Cases) ), by = .(Coun, Ultima_actualizacion)]
+datosOxfordTest <- merge( datosOxfordTest,  newAux01
+       , by = c("Coun", "Ultima_actualizacion"), all.x = TRUE, all.y = FALSE )
+datosOxfordTest[is.na(Cases)]
+datosOxfordTest <- datosOxfordTest [ !duplicated(Coun)]
+
+datosOxfordTest$Coun <-
+  paste0(
+    toupper(substr(x =  trimws( datosOxfordTest$Coun),start =  1,stop =  1)) 
+    , substr(x =  trimws( datosOxfordTest$Coun),start =  2,stop =  nchar(datosOxfordTest$Coun) )  ) 
+datosOxfordTest[ , CasosPorTest :=  Cases / Test_Totales]
+datosOxfordTest[ , TestPorMilHab := Test_Totales/Hab2018*1000]
+datosOxfordTest <- datosOxfordTest[ !duplicated(Coun)]
+datosOxfordTest[ order(TestPorMilHab, decreasing = TRUE), rankTest1000h := 1:nrow(datosOxfordTest)]
 
 
 leeDatos <- function( popBool = FALSE, pop = pop, new3 = new, dea3 = dea, rec3 = rec){
@@ -380,7 +398,7 @@ sidebar <- dashboardSidebar( # se conecta con dashboardBody
                 menuItem("Muertos detectados", tabName = "dashboard2", icon = icon("skull")),
                 menuItem("Contagiados detectados", tabName = "dashboard3", icon = icon("ambulance")),
                 menuItem("Recuperados detectados", tabName = "dashboard4", icon = icon("stethoscope")),
-                menuItem("Test", tabName = "dashboard6", icon = icon("vial")),
+                menuItem("Test Covid realizados", tabName = "dashboard6", icon = icon("vial")),
                 menuItem("Notas y Descargas", tabName = "dashboard5", icon = icon("book")),
                 
                 selectInput(inputId = "Pais1", label = "Pais 1",
@@ -581,12 +599,13 @@ body <- dashboardBody( # se conecta con dashboardSidebar
         
         tabItem(tabName = "dashboard6",
                 fluidRow( box(numericInput(inputId = "nCasosTest", label = "Mostrar n primeros", value = 20), background = "blue")
-                          , infoBox("% de paises con info sobre el # test"
+                          , infoBox("% paises informando test"
                                     , value = paste0 ( round( nrow(datosOxfordTest) /  ncol(listaSinPop$dea) * 100) , "%")
                                     , icon = icon("chart-bar"))
                           ), 
                 withSpinner(  plotlyOutput('plotTest') ) ,
                 withSpinner(  plotlyOutput('plotTest1000h') ) ,
+                withSpinner(  plotlyOutput('plotCasosXtest') ) ,
                 dataTableOutput("TestTable")
         ),
         
@@ -788,7 +807,8 @@ server <- function(input, output) {
       renderPlotly(({
         pTot <- ggplot(data= datosOxfordTest[ order(Test_Totales, decreasing = TRUE)][1:input$nCasosTest]
                        , aes(x=reorder(Coun, Test_Totales), y= Test_Totales)) +
-          geom_bar(stat="identity", fill = "steelblue") + coord_flip()  + theme_bw() + xlab("Pais") + ylab("# Test") + ggtitle("Casos Total")
+          geom_bar(stat="identity", fill = "steelblue") + coord_flip()  + theme_bw() + xlab("Pais") + ylab("# Test Covid") +
+          ggtitle("Tests Totales")
         pTot %>% ggplotly()
       }))
     
@@ -796,10 +816,20 @@ server <- function(input, output) {
       renderPlotly(({
         pProp <- ggplot(data= datosOxfordTest[ order(TestPorMilHab, decreasing = TRUE)][1:input$nCasosTest]
                         , aes(x=reorder(Coun, TestPorMilHab), y= round(TestPorMilHab, 2) ) ) +
-          geom_bar(stat="identity", fill = "steelblue") + coord_flip()  + theme_bw() + xlab("Pais") + ylab("Test x 1000 hab") + ggtitle("Casos por mil habitantes") 
+          geom_bar(stat="identity", fill = "steelblue") + coord_flip()  + theme_bw() + xlab("Pais") + ylab("Test Covid x 1000 hab") + 
+          ggtitle("Test de Covid por mil habitantes") 
         pProp %>% ggplotly()
       }))
-
+    
+    output$plotCasosXtest <- 
+      renderPlotly(({
+        pcast <- ggplot(data= datosOxfordTest[ order(CasosPorTest, decreasing = TRUE)][1:input$nCasosTest]
+                        , aes(x=reorder(Coun, CasosPorTest), y= round(CasosPorTest, 3) ) ) +
+          geom_bar(stat="identity", fill = "steelblue") + coord_flip()  + theme_bw() + xlab("Pais") + ylab("Casos por Test") + 
+          ggtitle("Casos de Covid por test realizado") 
+        pcast %>% ggplotly()
+      }))
+    
     
     output$TestTable <- 
       renderDataTable(({
