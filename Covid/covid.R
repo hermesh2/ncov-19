@@ -17,7 +17,7 @@ options(encoding = 'UTF-8')
 # }
 # pacman::p_load(data.table, dplyr, zoo, forecast, lubridate, dygraphs, RColorBrewer,xts
                # , shiny, shinydashboard, htmlwidgets, DT, plotly, reshape2, shinycssloaders)
-
+# setwd(dir = "C:/Users/hermesh/Dropbox/Investigaciones/Coronavirus/ncov-19/Covid/")
 library(data.table)
 library(dplyr)
 library(zoo )
@@ -226,7 +226,7 @@ plotSerieNormal <-  function(datfun, CounTxt, mavg_mmed = "" , forMa = 1, mainTx
 Pop <- fread(input = "Population.csv", integer64 = "double")
 Pop$Coun <- Pop$`Country Name` %>%  gsub(pattern = " ", replacement = "_", .) %>% tolower
 
-Pop$Coun[ Pop$Coun %>%  grepl(pattern = "hon")]
+# Pop$Coun[ Pop$Coun %>%  grepl(pattern = "kor")]
 Pop[ Coun == "russian_federation"]$Coun <- "russia"
 Pop[ Coun == "brunei_darussalam"]$Coun <- "brunei"
 Pop[ Coun == "czech_republic"]$Coun<- "czechia"
@@ -241,8 +241,11 @@ Pop[ Coun == "syrian_arab_republic"] $Coun<- "syria"
 Pop[ Coun == "north_america"]$Coun<- "us"
 Pop[ Coun == "sub-saharan_africa"]$Coun<- "western_sahara"
 Pop[ Coun == ""]$Coun<- ""
+# Pop$Coun <- 
 Pop <- Pop[, .(Coun, Hab2018)] 
-
+Pop$Coun <- Pop$Coun %>%
+  gsub(pattern = ".", replacement = "", x = ., fixed = TRUE) %>%
+  gsub(pattern = ",", replacement = "", x = ., fixed = TRUE)
 
 new <- funcMelt(dataFun = fread(input = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
                  , varTxt = "newCases")
@@ -253,6 +256,9 @@ rec <- funcMelt(dataFun = fread(input = "https://raw.githubusercontent.com/CSSEG
 
 
 datosOxford <- fread("https://covid.ourworldindata.org/data/owid-covid-data.csv")
+datosOxford$location <- datosOxford$location %>%
+  gsub(pattern = ".", replacement = "", x = ., fixed = TRUE) %>%
+  gsub(pattern = ",", replacement = "", x = ., fixed = TRUE)
 Aux <- datosOxford[ !is.na(total_tests), .( Test_Totales = max(total_tests, na.rm = TRUE)
                                             ,  Ultima_actualizacion = max(date))
                     , by = .(Coun = tolower(location) )][ 
@@ -263,6 +269,9 @@ Aux[ Coun == "czech_republic", Coun := "czechia"]
 Aux[ Coun == "hong_kong", Coun := "hong_kong_sar"]
 Aux[ Coun == "south_korea", Coun := "korea,_south"]
 Aux[ Coun == "united_states", Coun := "us"]
+Aux$Coun <- Aux$Coun %>%
+  gsub(pattern = ".", replacement = "", x = ., fixed = TRUE) %>%
+  gsub(pattern = ",", replacement = "", x = ., fixed = TRUE)
 # Aux[ Coun == "taiwan", Coun := ""] #No reconocido, politica
 datosOxfordTest <- merge(x = Aux, y = Pop
                          , by = "Coun", all.x = TRUE, all.y = FALSE )
@@ -272,7 +281,9 @@ if( nrow( datosOxfordTest[ is.na(Hab2018)]) > 0 ){
 }
 
 newAux <- copy(new)
-newAux[ , Coun:= tolower(Coun) %>% gsub(pattern = " ", replacement = "_", x = . )]
+newAux[ , Coun:= tolower(Coun) %>% gsub(pattern = " ", replacement = "_", x = . ) %>%
+          gsub(pattern = ".", replacement = "", x = ., fixed = TRUE) %>%
+          gsub(pattern = ",", replacement = "", x = ., fixed = TRUE)]
 newAux01 <- newAux[ ,.(Cases = sum(newCases) ) , by = .(Coun, Ultima_actualizacion = as.character(Fecha) )][ 
   , .(Cases = cumsum(Cases) ), by = .(Coun, Ultima_actualizacion)]
 datosOxfordTest <- merge( datosOxfordTest,  newAux01
@@ -292,9 +303,15 @@ datosOxfordTest[ order(TestPorMilHab, decreasing = TRUE), rankTest1000h := 1:nro
 
 leeDatos <- function( popBool = FALSE, pop = pop, new3 = new, dea3 = dea, rec3 = rec){
     
-    new3$Coun <- gsub(pattern = " ", replacement = "_", new3$Coun) %>% tolower
-    dea3$Coun <- gsub(pattern = " ", replacement = "_", dea3$Coun) %>% tolower
-    rec3$Coun <- gsub(pattern = " ", replacement = "_", rec3$Coun) %>% tolower
+    new3$Coun <- gsub(pattern = " ", replacement = "_", new3$Coun) %>% tolower %>%
+      gsub(pattern = ".", replacement = "", x = ., fixed = TRUE) %>%
+      gsub(pattern = ",", replacement = "", x = ., fixed = TRUE)
+    dea3$Coun <- gsub(pattern = " ", replacement = "_", dea3$Coun) %>% tolower%>%
+      gsub(pattern = ".", replacement = "", x = ., fixed = TRUE) %>%
+      gsub(pattern = ",", replacement = "", x = ., fixed = TRUE)
+    rec3$Coun <- gsub(pattern = " ", replacement = "_", rec3$Coun) %>% tolower %>%
+      gsub(pattern = ".", replacement = "", x = ., fixed = TRUE) %>%
+      gsub(pattern = ",", replacement = "", x = ., fixed = TRUE)
 
     new4 <- new3[ !duplicated( paste(Coun, Prov, Fecha ) ) ][ order(Coun, Prov, Fecha, decreasing = FALSE )]
     dea4 <- dea3[ !duplicated( paste(Coun, Prov, Fecha ) ) ][ order(Coun, Prov, Fecha, decreasing = FALSE )]
