@@ -506,7 +506,7 @@ body <- dashboardBody( # se conecta con dashboardSidebar
         
         tabItem(tabName = "dashboard4",
                 
-                br(),h1("Contagiados"),br(),
+                br(),h1(""),br(),
                 h4("La fecha de partida esta centrada en el pais 1 por defecto a partir de # Casos Frontera (Por defecto 10). 
                    Puedes deseleccionarlo en la caja"),
                 
